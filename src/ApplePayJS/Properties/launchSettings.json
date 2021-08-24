@@ -10,7 +10,6 @@
   "profiles": {
     "IIS Express": {
       "commandName": "IISExpress",
-      "ancmHostingModel": "InProcess",
       "launchBrowser": true,
       "launchUrl": "https://localhost:44399/",
       "environmentVariables": {
@@ -18,10 +17,19 @@
         "ASPNETCORE_HTTPS_PORT": "44399"
       }
     },
+    "JustEat.ApplePayJS": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "applicationUrl": "http://localhost:19330",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
     "ApplePayJS": {
       "commandName": "Project",
       "launchBrowser": true,
       "launchUrl": "http://localhost:5000",
+      "applicationUrl": "http://localhost:5000/",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "ASPNETCORE_HTTPS_PORT": "5001"
