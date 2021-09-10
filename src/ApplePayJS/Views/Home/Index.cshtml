@@ -8,7 +8,7 @@
 @inject Microsoft.Extensions.Configuration.IConfiguration Config
 
 @{
-    ViewData["Title"] = "Sample integration";
+    ViewData["Title"] = "Alternative Payments ";
     var token = Antiforgery.GetAndStoreTokens(Context);
 
     var language = Context.Request.Query["lang"].FirstOrDefault() ?? Config["ApplePay:DefaultLanguage"];

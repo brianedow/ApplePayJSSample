@@ -13,8 +13,27 @@ namespace JustEat.ApplePayJS
             CreateHostBuilder(args).Build().Run();
         }
 
+        //public static IHostBuilder CreateHostBuilder(string[] args) =>
+        //    Host.CreateDefaultBuilder(args)
+        //        .ConfigureWebHostDefaults((builder) => builder.UseStartup<Startup>());
+
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults((builder) => builder.UseStartup<Startup>());
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder.UseStartup<Startup>();
+
+                    if (args.Length == 1)
+                    {
+                        webBuilder.UseUrls(string.Format("http://{0}:5000", args[0]), string.Format("https://{0}:5001", args[0]));
+                    }
+                    else
+                    {
+                        webBuilder.UseUrls("http://localhost:5000", "https://localhost:5001");
+                    }
+
+
+                });
+
     }
 }
