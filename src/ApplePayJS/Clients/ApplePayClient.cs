@@ -20,52 +20,35 @@ namespace JustEat.ApplePayJS.Clients
             _httpClient = httpClient;
         }
 
-        public async Task<string> XXX (Uri requestUri,
+        public async Task<JsonDocument> GetMerchantSessionAsync(Uri requestUri,
             MerchantSessionRequest request,
             CancellationToken cancellationToken = default)
         {
             // POST the data to create a valid Apple Pay merchant session.
-            string result = null;
+            JsonDocument result = null;
             try
             {
                 string json = JsonSerializer.Serialize(request);
+                //result.AppendLine("Added JSON to request: '" + json + "'");
 
                 using var content = new StringContent(json, System.Text.Encoding.UTF8, System.Net.Mime.MediaTypeNames.Application.Json);
 
                 //return "{ RootElement: 'howdy', client='" + ((_httpClient == null) ? "null" : "non-null") + "' }";
+                _httpClient.DefaultRequestHeaders.ExpectContinue = true;
                 using var response = await _httpClient.PostAsync(requestUri, content, cancellationToken);
 
-                response.EnsureSuccessStatusCode();
+                //response.EnsureSuccessStatusCode();
 
                 // Read the opaque merchant session JSON from the response body.
-                result = await response.Content.ReadAsStringAsync();
-            } catch (System.Exception exception) {
-                result = exception.ToString();
+                using var stream = await response.Content.ReadAsStreamAsync();
+
+                result = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+            }
+            catch (System.Exception exception) {
+                result = JsonDocument.Parse("{ Exception: '" + exception.ToString() + "' }");
             }
             return result;
         }
 
-        public async Task<JsonDocument> GetMerchantSessionAsync(
-            Uri requestUri,
-            MerchantSessionRequest request) //,
-            //CancellationToken cancellationToken = default)
-        {
-            // POST the data to create a valid Apple Pay merchant session.
-            return JsonDocument.Parse("{ RootElement: 'howdy' }");
-/*
-            string json = JsonSerializer.Serialize(request);
-
-            using var content = new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json);
-
-            using var response = await _httpClient.PostAsync(requestUri, content, cancellationToken);
-
-            response.EnsureSuccessStatusCode();
-
-            // Read the opaque merchant session JSON from the response body.
-            using var stream = await response.Content.ReadAsStreamAsync();
-
-            return await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-*/
-        }
     }
 }
