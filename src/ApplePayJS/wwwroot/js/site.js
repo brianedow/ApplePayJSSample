@@ -1,7 +1,7 @@
 // Copyright (c) PaymentVision, 2021. All rights reserved.
 // Licensed under the Apache 2.0 license. See the LICENSE file in the project root for full license information.
 
-justEat = {
+paymentVision = {
     applePay: {
         // Function to handle payment when the Apple Pay button is clicked/pressed.
         beginPayment: async function (e) {
@@ -234,7 +234,7 @@ justEat = {
                 // the relevant status code for the payment's authorization.
                 session.completePayment(authorizationResult);
 
-                justEat.applePay.showSuccess();
+                paymentVision.applePay.showSuccess();
             };
 
             session.oncancel = function (event) {
@@ -333,25 +333,25 @@ justEat = {
 
         },
         setupApplePay: function () {
-            var merchantIdentifier = justEat.applePay.getMerchantIdentifier();
+            var merchantIdentifier = paymentVision.applePay.getMerchantIdentifier();
             ApplePaySession.openPaymentSetup(merchantIdentifier)
                 .then(function (success) {
                     if (success) {
-                        justEat.applePay.hideSetupButton();
-                        justEat.applePay.showButton();
+                        paymentVision.applePay.hideSetupButton();
+                        paymentVision.applePay.showButton();
                     } else {
-                        justEat.applePay.showError("Failed to set up Apple Pay.");
+                        paymentVision.applePay.showError("Failed to set up Apple Pay.");
                     }
                 }).catch(function (e) {
-                    justEat.applePay.showError("Failed to set up Apple Pay. " + e);
+                    paymentVision.applePay.showError("Failed to set up Apple Pay. " + e);
                 });
         },
         showButton: function () {
             var button = $("#apple-pay-button");
-            button.attr("lang", justEat.applePay.getPageLanguage());
-            button.on("click", justEat.applePay.beginPayment);
+            button.attr("lang", paymentVision.applePay.getPageLanguage());
+            button.on("click", paymentVision.applePay.beginPayment);
 
-            if (justEat.applePay.supportsSetup()) {
+            if (paymentVision.applePay.supportsSetup()) {
                 button.addClass("apple-pay-button-with-text");
                 button.addClass("apple-pay-button-black-with-text");
             } else {
@@ -363,8 +363,8 @@ justEat = {
         },
         showSetupButton: function () {
             var button = $("#set-up-apple-pay-button");
-            button.attr("lang", justEat.applePay.getPageLanguage());
-            button.on("click", $.proxy(justEat.applePay, "setupApplePay"));
+            button.attr("lang", paymentVision.applePay.getPageLanguage());
+            button.on("click", $.proxy(paymentVision.applePay, "setupApplePay"));
             button.removeClass("d-none");
         },
         hideSetupButton: function () {
@@ -394,38 +394,157 @@ justEat = {
         getMerchantIdentifier: function () {
             return $("meta[name='apple-pay-merchant-id']").attr("content");
         }
+    },
+
+    googlePay: {
+        //let googlePayClient;
+        onGooglePayLoaded: function () {
+            googlePayClient = new google.payments.api.PaymentsClient({
+                environment: 'TEST'
+            });
+
+            const baseCardPaymentMethod = {
+                type: 'CARD',
+                parameters: {
+                    allowedCardNetworks: ['VISA', 'MASTERCARD'],
+                    allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS']
+                }
+            };
+
+            const googlePayBaseConfiguration = {
+                apiVersion: 2,
+                apiVersionMinor: 0,
+                allowedPaymentMethods: [baseCardPaymentMethod]
+            };
+
+            googlePayClient.isReadyToPay(googlePayBaseConfiguration)
+                .then(function (response) {
+                    if (response.result) {
+                        createAndAddButton();
+                    } else {
+                        alert("Unable to pay using Google Pay");
+                    }
+                }).catch(function (err) {
+                    console.error("Error determining readiness to use Google Pay: ", err);
+                });
+
+            function createAndAddButton() {
+
+                const googlePayButton = googlePayClient.createButton({
+
+                    // currently defaults to black if default or omitted
+                    buttonColor: 'default',
+
+                    // defaults to long if omitted
+                    buttonType: 'long',
+
+                    onClick: onGooglePaymentsButtonClicked
+                });
+
+                document.getElementById('google-pay-button').appendChild(googlePayButton);
+            }
+
+            function onGooglePaymentsButtonClicked() {
+                // TODO: Perform transaction
+                const tokenizationSpecification = {
+                    type: 'PAYMENT_GATEWAY',
+                    parameters: {
+                        gateway: 'example',
+                        gatewayMerchantId: 'gatewayMerchantId'
+                    }
+                };
+
+                const cardPaymentMethod = {
+                    type: 'CARD',
+                    tokenizationSpecification: tokenizationSpecification,
+                    parameters: {
+                        allowedCardNetworks: ['VISA', 'MASTERCARD'],
+                        allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS'],
+                        billingAddressRequired: true,
+                        billingAddressParameters: {
+                            format: 'FULL',
+                            phoneNumberRequired: true
+                        }
+                    }
+                };
+
+                const transactionInfo = {
+                    totalPriceStatus: 'FINAL',
+                    totalPrice: '123.45',
+                    currencyCode: 'USD'
+                };
+
+                const merchantInfo = {
+                    // merchantId: '01234567890123456789', Only in PRODUCTION
+                    merchantName: 'Example Merchant Name'
+                };
+
+                const paymentDataRequest = Object.assign({}, googlePayBaseConfiguration, {
+                    allowedPaymentMethods: [cardPaymentMethod],
+                    transactionInfo: transactionInfo,
+                    merchantInfo: merchantInfo
+                });
+
+                googlePayClient
+                    .loadPaymentData(paymentDataRequest)
+                    .then(function (paymentData) {
+                        processPayment(paymentData);
+                    }).catch(function (err) {
+                        // Log error: { statusCode: CANCELED || DEVELOPER_ERROR }
+                    });
+
+            }
+
+            function processPayment(paymentData) {
+                // TODO: Send a POST request to your processor with the payload
+                // https://us-central1-devrel-payments.cloudfunctions.net/google-pay-server 
+                // Sorry, this is out-of-scope for this codelab.
+                return new Promise(function (resolve, reject) {
+                    // @todo pass payment token to your gateway to process payment
+                    const paymentToken = paymentData.paymentMethodData.tokenizationData.token;
+                    console.log('mock send token ' + paymentToken + ' to payment processor');
+                    setTimeout(function () {
+                        console.log('mock response from processor');
+                        alert('done');
+                        resolve({});
+                    }, 800);
+                });
+            }
+        }
     }
 };
 
 (function () {
 
     // Get the merchant identifier from the page meta tags.
-    var merchantIdentifier = justEat.applePay.getMerchantIdentifier();
+    var merchantIdentifier = paymentVision.applePay.getMerchantIdentifier();
 
     if (!merchantIdentifier) {
-        justEat.applePay.showError("No Apple Pay merchant certificate is configured.");
+        paymentVision.applePay.showError("No Apple Pay merchant certificate is configured.");
     }
     // Is ApplePaySession available in the browser?
-    else if (justEat.applePay.supportedByDevice()) {
+    else if (paymentVision.applePay.supportedByDevice()) {
 
         // Determine whether to display the Apple Pay button. See this link for details
         // on the two different approaches: https://developer.apple.com/documentation/applepayjs/checking_if_apple_pay_is_available
         if (ApplePaySession.canMakePayments() === true) {
-            justEat.applePay.showButton();
+            paymentVision.applePay.showButton();
         } else {
             ApplePaySession.canMakePaymentsWithActiveCard(merchantIdentifier).then(function (canMakePayments) {
                 if (canMakePayments === true) {
-                    justEat.applePay.showButton();
+                    paymentVision.applePay.showButton();
                 } else {
-                    if (justEat.applePay.supportsSetup()) {
-                        justEat.applePay.showSetupButton(merchantIdentifier);
+                    if (paymentVision.applePay.supportsSetup()) {
+                        paymentVision.applePay.showSetupButton(merchantIdentifier);
                     } else {
-                        justEat.applePay.showError("Apple Pay cannot be used at this time. If using macOS you need to be paired with a device that supports at least TouchID.");
+                        paymentVision.applePay.showError("Apple Pay cannot be used at this time. If using macOS you need to be paired with a device that supports at least TouchID.");
                     }
                 }
             });
         }
     } else {
-        justEat.applePay.showError("This device and/or browser does not support Apple Pay.");
+        paymentVision.applePay.showError("This device and/or browser does not support Apple Pay.");
     }
+
+    let googlePayClient;
 })();

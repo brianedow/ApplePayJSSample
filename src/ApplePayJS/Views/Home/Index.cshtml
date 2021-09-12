@@ -145,7 +145,7 @@
                 <label class="sr-only" for="amount">Amount (in @currencyCode)</label>
                 <div class="input-group input-group-lg">
                     @*
-                        Add a number input for the amount to charge in the Apple Pay Sheet.
+                Add a number input for the amount to charge in the Apple Pay Sheet.
                     *@
                     <div class="input-group-prepend">
                         <span class="input-group-text" id="amount-addon">@currencySymbol</span>
@@ -164,16 +164,18 @@
                 </div>
             </fieldset>
             @*
-                Used to render the setup Apple Pay button, which is shown if the
-                JavaScript determines that Apple Pay is available, but there are
-                no payment cards set up in Wallet.
+        Used to render the setup Apple Pay button, which is shown if the
+        JavaScript determines that Apple Pay is available, but there are
+        no payment cards set up in Wallet.
             *@
             <div id="set-up-apple-pay-button" class="apple-pay apple-pay-set-up-button apple-pay-set-up-button-black input-block-level d-none" lang="@countryCode"></div>
             @*
-                Used to render the Apple Pay button, which is shown if the
-                JavaScript determines that Apple Pay is available for use.
+        Used to render the Apple Pay button, which is shown if the
+        JavaScript determines that Apple Pay is available for use.
             *@
             <div id="apple-pay-button" class="apple-pay input-block-level d-none" lang="@countryCode"></div>
+
+            <div id="google-pay-button" class="input-block-levels   " lang="@countryCode"></div>
         </form>
     </div>
 </div>
@@ -190,4 +192,9 @@
     {
         <script src="~/js/site.js" asp-append-version="true"></script>
     }
+
+
+    <script async
+            src="https://pay.google.com/gp/p/js/pay.js"
+            onload="paymentVision.googlePay.onGooglePayLoaded()"></script>
 }
