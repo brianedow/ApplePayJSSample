@@ -3,6 +3,7 @@
   "private": true,
   "dependencies": {
     "applepayjs-polyfill": "10.0.0",
-    "jquery": "3.6.0"
+    "jquery": "3.6.0",
+    "axios": "^0.26.0"
   }
 }

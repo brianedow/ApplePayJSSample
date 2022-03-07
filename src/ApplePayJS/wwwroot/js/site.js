@@ -1,6 +1,8 @@
 // Copyright (c) PaymentVision, 2021. All rights reserved.
 // Licensed under the Apache 2.0 license. See the LICENSE file in the project root for full license information.
 
+const { axios } = require("../lib/axios/dist/axios");
+
 paymentVision = {
   applePay: {
     // Function to handle payment when the Apple Pay button is clicked/pressed.
@@ -174,12 +176,8 @@ paymentVision = {
         var billingContact = event.payment.billingContact;
         var shippingContact = event.payment.shippingContact;
 
-        // Get the payment data for use to capture funds from
-        // the encrypted Apple Pay token in your server.
-        var token = event.payment.token.paymentData;
-
-        // TODO: post this token to the PaymentVision API
-        console.log(token);
+        // TODO: udpate URI endpoint for posting payloads
+        axios.post("TODO: URI ENDPOINT", getTokenPayload("ApplePay", event.payment.token.paymentData));
 
         // Apply the details from the Apple Pay sheet to the page.
         var update = function (panel, contact) {
@@ -500,9 +498,9 @@ paymentVision = {
         // https://us-central1-devrel-payments.cloudfunctions.net/google-pay-server
         // Sorry, this is out-of-scope for this codelab.
         return new Promise(function (resolve, reject) {
-          // @todo pass payment token to your gateway to process payment
-          const paymentToken = paymentData.paymentMethodData.tokenizationData.token;
-          console.log("mock send token " + paymentToken + " to payment processor");
+          // TODO: udpate URI endpoint for posting payloads
+          axios.post("TODO: URI ENDPOINT", getTokenPayload("GooglePay", paymentData.paymentMethodData.tokenizationData.token));
+
           setTimeout(function () {
             console.log("mock response from processor");
             alert("done");
@@ -513,6 +511,13 @@ paymentVision = {
     },
   },
 };
+
+function getTokenPayload(wallet, token) {
+  return {
+    wallet,
+    token,
+  };
+}
 
 (function () {
   // Get the merchant identifier from the page meta tags.
