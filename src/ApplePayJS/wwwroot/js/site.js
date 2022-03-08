@@ -1,7 +1,10 @@
 // Copyright (c) PaymentVision, 2021. All rights reserved.
 // Licensed under the Apache 2.0 license. See the LICENSE file in the project root for full license information.
 
-const { axios } = require("../lib/axios/dist/axios");
+const paymentVisionUri = {
+  applePay: "TODO",
+  googlePay: "https://pvapi.paymentvision.com/rest/MakeCardPaymentViaGooglePay",
+};
 
 paymentVision = {
   applePay: {
@@ -171,69 +174,29 @@ paymentVision = {
 
       // Setup handler to receive the token when payment is authorized.
       session.onpaymentauthorized = function (event) {
-        // Get the contact details for use, for example to
-        // use to create an account for the user.
-        var billingContact = event.payment.billingContact;
-        var shippingContact = event.payment.shippingContact;
+        const payload = getApplePayPayload(event.payment.token.paymentData);
+        console.log("Payload: ", payload);
 
-        // TODO: udpate URI endpoint for posting payloads
-        axios.post("TODO: URI ENDPOINT", getTokenPayload("ApplePay", event.payment.token.paymentData));
+        fetch(paymentVisionUri.applePay, {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: payload,
+        })
+          .then(() => {
+            session.completePayment({
+              status: ApplePaySession.STATUS_SUCCESS,
+              errors: [],
+            });
 
-        // Apply the details from the Apple Pay sheet to the page.
-        var update = function (panel, contact) {
-          if (contact.emailAddress) {
-            panel
-              .find(".contact-email")
-              .text(contact.emailAddress)
-              .attr("href", "mailto:" + contact.emailAddress)
-              .append("<br/>")
-              .removeClass("d-none");
-          }
-
-          if (contact.phoneNumber) {
-            panel
-              .find(".contact-telephone")
-              .text(contact.phoneNumber)
-              .attr("href", "tel:" + contact.phoneNumber)
-              .append("<br/>")
-              .removeClass("d-none");
-          }
-
-          if (contact.givenName) {
-            panel
-              .find(".contact-name")
-              .text(contact.givenName + " " + contact.familyName)
-              .append("<br/>")
-              .removeClass("d-none");
-          }
-
-          if (contact.addressLines) {
-            panel.find(".contact-address-lines").text(contact.addressLines.join(", "));
-            panel.find(".contact-sub-locality").text(contact.subLocality);
-            panel.find(".contact-locality").text(contact.locality);
-            panel.find(".contact-sub-administrative-area").text(contact.subAdministrativeArea);
-            panel.find(".contact-administrative-area").text(contact.administrativeArea);
-            panel.find(".contact-postal-code").text(contact.postalCode);
-            panel.find(".contact-country").text(contact.country);
-            panel.find(".contact-address").removeClass("d-none");
-          }
-        };
-
-        $(".card-name").text(event.payment.token.paymentMethod.displayName);
-        update($("#billing-contact"), billingContact);
-        update($("#shipping-contact"), shippingContact);
-
-        var authorizationResult = {
-          status: ApplePaySession.STATUS_SUCCESS,
-          errors: [],
-        };
-
-        // Do something with the payment to capture funds and
-        // then dismiss the Apple Pay sheet for the session with
-        // the relevant status code for the payment's authorization.
-        session.completePayment(authorizationResult);
-
-        paymentVision.applePay.showSuccess();
+            paymentVision.applePay.showSuccess();
+          })
+          .catch((err) => {
+            console.error("Unable to post payload to PaymentVision API", err);
+            throw err;
+          });
       };
 
       session.oncancel = function (event) {
@@ -485,38 +448,108 @@ paymentVision = {
 
         googlePayClient
           .loadPaymentData(paymentDataRequest)
-          .then(function (paymentData) {
-            processPayment(paymentData);
-          })
-          .catch(function (err) {
-            // Log error: { statusCode: CANCELED || DEVELOPER_ERROR }
+          .then((paymentData) => processPayment(paymentData))
+          .catch((err) => {
+            console.error("Unable to process payment", err);
+            throw err;
           });
       }
 
       function processPayment(paymentData) {
-        // TODO: Send a POST request to your processor with the payload
-        // https://us-central1-devrel-payments.cloudfunctions.net/google-pay-server
-        // Sorry, this is out-of-scope for this codelab.
-        return new Promise(function (resolve, reject) {
-          // TODO: udpate URI endpoint for posting payloads
-          axios.post("TODO: URI ENDPOINT", getTokenPayload("GooglePay", paymentData.paymentMethodData.tokenizationData.token));
+        const payload = getGooglePayPayload(paymentData.paymentMethodData.tokenizationData.token);
+        console.log("Payload: ", payload);
 
-          setTimeout(function () {
-            console.log("mock response from processor");
-            alert("done");
-            resolve({});
-          }, 800);
+        return fetch(paymentVisionUri.googlePay, {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: payload,
         });
       }
     },
   },
 };
 
-function getTokenPayload(wallet, token) {
-  return {
-    wallet,
-    token,
+function getGooglePayPayload(token) {
+  const payload = {
+    googlePayCardPayload: token,
+    cardPayment: {
+      merchantPayeeCode: "PAY01",
+      amount: "1.00",
+      comment: "Payment via altpay.paymentvision.com",
+      confirmationNumber: "",
+      convenienceFee: "0.00",
+      settlementDate: "03/07/2022",
+      userDefinedOne: "",
+      userDefinedTwo: "",
+      externalRequestID: "",
+      fulfillmentGateway: "",
+      holdForApproval: false,
+      isRecurring: false,
+    },
+    customer: {
+      customerReferenceCode: "TestGoogleID",
+      accountReferenceCode: "",
+      firstName: "Google",
+      lastName: "Test",
+      adressLineOne: "13 Main St.",
+      addressLineTwo: "",
+      city: "Alexandria",
+      state: "VA",
+      zip: "22310",
+      homePhone: "215-555-4568",
+      workPhone: "215-555-4568",
+      email: "bdowney@autoscribe.com",
+    },
+    merchantOrgization: {
+      merchantPrimaryCode: "",
+      externalRequestID: "",
+    },
   };
+
+  return JSON.stringify(payload);
+}
+
+function getApplePayPayload(token) {
+  const payload = {
+    applePayCardPayload: token,
+    cardPayment: {
+      merchantPayeeCode: "PAY01",
+      amount: "1.00",
+      comment: "Payment via altpay.paymentvision.com",
+      confirmationNumber: "",
+      convenienceFee: "0.00",
+      settlementDate: "03/07/2022",
+      userDefinedOne: "",
+      userDefinedTwo: "",
+      externalRequestID: "",
+      fulfillmentGateway: "",
+      holdForApproval: false,
+      isRecurring: false,
+    },
+    customer: {
+      customerReferenceCode: "TestGoogleID",
+      accountReferenceCode: "",
+      firstName: "Google",
+      lastName: "Test",
+      adressLineOne: "13 Main St.",
+      addressLineTwo: "",
+      city: "Alexandria",
+      state: "VA",
+      zip: "22310",
+      homePhone: "215-555-4568",
+      workPhone: "215-555-4568",
+      email: "bdowney@autoscribe.com",
+    },
+    merchantOrgization: {
+      merchantPrimaryCode: "",
+      externalRequestID: "",
+    },
+  };
+
+  return JSON.stringify(payload);
 }
 
 (function () {
