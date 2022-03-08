@@ -406,7 +406,6 @@ paymentVision = {
       }
 
       function onGooglePaymentsButtonClicked() {
-        // TODO: Perform transaction
         const tokenizationSpecification = {
           type: "PAYMENT_GATEWAY",
           parameters: {
@@ -457,7 +456,6 @@ paymentVision = {
 
       function processPayment(paymentData) {
         const payload = getGooglePayPayload(paymentData.paymentMethodData.tokenizationData.token);
-        console.log("Payload: ", payload);
 
         return fetch(paymentVisionUri.googlePay, {
           method: "POST",
@@ -472,9 +470,9 @@ paymentVision = {
   },
 };
 
-function getGooglePayPayload(token) {
+const getGooglePayPayload = (token) => {
   const payload = {
-    googlePayCardPayload: token,
+    googlePayCardPayload: JSON.parse(token),
     cardPayment: {
       merchantPayeeCode: "PAY01",
       amount: "1.00",
@@ -510,9 +508,9 @@ function getGooglePayPayload(token) {
   };
 
   return JSON.stringify(payload);
-}
+};
 
-function getApplePayPayload(token) {
+const getApplePayPayload = (token) => {
   const payload = {
     applePayCardPayload: token,
     cardPayment: {
@@ -550,7 +548,7 @@ function getApplePayPayload(token) {
   };
 
   return JSON.stringify(payload);
-}
+};
 
 (function () {
   // Get the merchant identifier from the page meta tags.
