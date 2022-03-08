@@ -456,6 +456,7 @@ paymentVision = {
 
       function processPayment(paymentData) {
         const payload = getGooglePayPayload(paymentData.paymentMethodData.tokenizationData.token);
+        console.log("GooglePay Payload:", payload)
 
         return fetch(paymentVisionUri.googlePay, {
           method: "POST",
@@ -464,7 +465,9 @@ paymentVision = {
             "Content-Type": "application/json",
           },
           body: payload,
-        });
+        })
+          .then((res) => res.json())
+          .then((data) => console.log("MakeCardPaymentViaGooglePay Response:", data));
       }
     },
   },
