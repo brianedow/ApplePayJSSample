@@ -447,16 +447,16 @@ paymentVision = {
 
         googlePayClient
           .loadPaymentData(paymentDataRequest)
-          .then((paymentData) => processPayment(paymentData))
+          .then((response) => processPayment(response))
           .catch((err) => {
             console.error("Unable to process payment", err);
             throw err;
           });
       }
 
-      function processPayment(paymentData) {
-        const payload = getGooglePayPayload(paymentData.paymentMethodData.tokenizationData.token);
-        console.log("GooglePay Payload:", payload)
+      function processPayment(googlePayResponse) {
+        const payload = getGooglePayPayload(googlePayResponse);
+        console.log("GooglePay Payload:", payload);
 
         return fetch(paymentVisionUri.googlePay, {
           method: "POST",
@@ -473,40 +473,54 @@ paymentVision = {
   },
 };
 
-const getGooglePayPayload = (token) => {
+const getGooglePayPayload = (googlePayResponse) => {
+  const token = googlePayResponse.paymentMethodData.tokenizationData.token;
+  const billingAddress = googlePayResponse.paymentMethodData.info.billingAddress;
+
   const payload = {
     googlePayCardPayload: JSON.parse(token),
     cardPayment: {
-      merchantPayeeCode: "PAY01",
-      amount: "1.00",
-      comment: "Payment via altpay.paymentvision.com",
-      confirmationNumber: "",
-      convenienceFee: "0.00",
-      settlementDate: "03/07/2022",
-      userDefinedOne: "",
-      userDefinedTwo: "",
-      externalRequestID: "",
-      fulfillmentGateway: "",
-      holdForApproval: false,
-      isRecurring: false,
-    },
-    customer: {
-      customerReferenceCode: "TestGoogleID",
-      accountReferenceCode: "",
-      firstName: "Google",
-      lastName: "Test",
-      adressLineOne: "13 Main St.",
-      addressLineTwo: "",
-      city: "Alexandria",
-      state: "VA",
-      zip: "22310",
-      homePhone: "215-555-4568",
-      workPhone: "215-555-4568",
-      email: "bdowney@autoscribe.com",
-    },
-    merchantOrgization: {
-      merchantPrimaryCode: "",
-      externalRequestID: "",
+      cardBillingAddress: {
+        nameOnCard: billingAddress.name,
+        adressLineOne: billingAddress.address1,
+        addressLineTwo: billingAddress.address2,
+        city: billingAddress.locality,
+        state: billingAddress.administrativeArea,
+        zipCode: billingAddress.postalCode,
+        phone: billingAddress.phoneNumber,
+      },
+      payment: {
+        merchantPayeeCode: "string",
+        amount: "string",
+        comment: "string",
+        confirmationNumber: "string",
+        convenienceFee: "string",
+        settlementDate: "string",
+        userDefinedOne: "string",
+        userDefinedTwo: "string",
+        externalRequestID: "string",
+        fulfillmentGateway: "string",
+        holdForApproval: true,
+        isRecurring: true,
+      },
+      customer: {
+        customerReferenceCode: "string",
+        accountReferenceCode: "string",
+        firstName: "string",
+        lastName: "string",
+        adressLineOne: "string",
+        addressLineTwo: "string",
+        city: "string",
+        state: "string",
+        zip: "string",
+        homePhone: "string",
+        workPhone: "string",
+        email: "string",
+      },
+      merchantOrganization: {
+        merchantPrimaryCode: "string",
+        externalRequestID: "string",
+      },
     },
   };
 
