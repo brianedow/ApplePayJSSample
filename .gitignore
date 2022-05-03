@@ -44,3 +44,4 @@ PublishProfiles
 *.sln.ide
 *.suo
 *.user
+certs
