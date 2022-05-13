@@ -59,6 +59,13 @@ You should now be able to perform Apple Pay JS transactions on the deployed appl
 
 You should be able to debug the application in [Visual Studio Code](https://code.visualstudio.com/) or [Visual Studio 2019](https://www.visualstudio.com/downloads/).
 
+### VS Code
+
+1. Build: `dotnet build`
+2. Run: `dotnet watch run --project src/ApplePayJS/ApplePayJS.csproj`
+
+> This will set a watcher to rebuild the code whenever src file is modified (manual refreshing of the browser is necessary)
+
 ## Azure App Service Deployment
 
 If you are deploying the sample application to a Microsoft Azure App Service Web App, you will need to make the following configuration changes to your Web App for the sample application to run correctly:
