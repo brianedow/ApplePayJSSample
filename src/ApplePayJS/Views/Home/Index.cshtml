@@ -178,6 +178,20 @@
             <div id="google-pay-button" class="input-block-levels   " lang="@countryCode"></div>
         </form>
     </div>
+
+    <div style="margin-top: 30px; padding: 10px; border: 1px solid silver; border-radius: 5px">
+        <h2 style="margin-bottom: 50px">PayPal</h2>
+        <div id="paypal-button-container" style="width: 350px"></div>
+
+        <div id="paypal-response-container" style="display: none">
+            <h3>PayPal Results</h3>
+            <p id="paypal-response-status"></p>
+            <h4>Create Order Response</h4>
+            <textarea id="paypal-order-response" rows="20" style="width: 100%; max-width: 800px"></textarea>
+            <h4>Approve Order Response</h4>
+            <textarea id="paypal-approve-response" rows="20" style="display: none; width: 100%; max-width: 800px"></textarea>
+        </div>
+    </div>
 </div>
 @section scripts {
     @if (string.Equals(Config["ApplePay:UsePolyfill"], bool.TrueString, StringComparison.OrdinalIgnoreCase))
@@ -194,7 +208,59 @@
     }
 
 
-    <script async
-            src="https://pay.google.com/gp/p/js/pay.js"
-            onload="paymentVision.googlePay.onGooglePayLoaded()"></script>
+    <script async src="https://pay.google.com/gp/p/js/pay.js" onload="paymentVision.googlePay.onGooglePayLoaded()"></script>
+    <script src="https://www.paypal.com/sdk/js?client-id=AY8d2nEn9pK1GvtCYDCFo8Gw99bX6sn89Ln_GJFrJsGZvBgCbyKc0T7BBW2Tq1mucqbi_ihELPS1nx55&currency=USD"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <script>
+        paypal
+            .Buttons({
+            createOrder: () => {
+                $("#paypal-response-container").hide();
+                $("#paypal-response-status").text("");
+                $("#paypal-approve-response").hide();
+
+                return axios
+                .post("https://localhost:7063/api/paypal/order")
+                .then((res) => {
+                    $("#paypal-response-status").text("Status: processing...");
+                    $("#paypal-order-response").val(JSON.stringify(res.data, null, 2));
+                    $("#paypal-response-container").show();
+                    return res.data.id;
+                });
+            },
+            onApprove: (data, actions) => {
+                return axios.post("https://localhost:7063/api/paypal/order/" + data.orderID + "/capture")
+                .then((res) => {
+                    // Three cases to handle:
+                    //   (1) Recoverable INSTRUMENT_DECLINED -> call actions.restart()
+                    //   (2) Other non-recoverable errors -> Show a failure message
+                    //   (3) Successful transaction -> Show confirmation or thank you                       
+
+                    const errorDetail = Array.isArray(res.data.details) && res.data.details[0];
+                    if (errorDetail && errorDetail.issue === "INSTRUMENT_DECLINED") {
+                    $("#paypal-response-status").text("Status: INSTRUMENT_DECLINED");
+                    return actions.restart(); // Recoverable state, per https://developer.paypal.com/docs/checkout/integration-features/funding-failure/
+                    }
+
+                    $("#paypal-approve-response").show();
+
+                    if (errorDetail) {
+                    $("#paypal-response-status").text("Status: ERROR");
+                    let msg = "Transaction could not be processed.";
+                    if (errorDetail.description) msg += `\n\n${errorDetail.description}`;
+                    if (res.data.debug_id) msg += ` (${res.data.debug_id})`;
+                    $("#paypal-approve-response").val(msg);
+                    return;
+                    }
+
+                    const transaction = res.data.purchase_units[0].payments.captures[0];
+                    $("#paypal-response-status").text(`Status: ${transaction.status}`);
+                    $("#paypal-approve-response").val(`Transaction ID: ${transaction.id}\n\n${JSON.stringify(res.data, null, 2)}`);
+                });
+            },
+            })
+            .render("#paypal-button-container");
+    </script>
 }
