@@ -59,14 +59,31 @@ You should now be able to perform Apple Pay JS transactions on the deployed appl
 
 You should be able to debug the application in [Visual Studio Code](https://code.visualstudio.com/) or [Visual Studio 2019](https://www.visualstudio.com/downloads/).
 
-### VS Code
+### VS Code (CLI)
 
 1. Build: `dotnet build`
 2. Run: `dotnet watch run --project src/ApplePayJS/ApplePayJS.csproj`
 
 > This will set a watcher to rebuild the code whenever src file is modified (manual refreshing of the browser is necessary)
 
-## Azure App Service Deployment
+## Deployment
+
+### Manual (CLI)
+
+1. Publish to local folder: `dotnet publish --configuration Release --no-self-contained --runtime win-x64 --output dist src/ApplePayJS/ApplePayJS.csproj`
+3. Zip ./dist folder
+3. Backup ".well-known/apple-developer-merchantid-domain-association.txt" in deployment server
+4. Replace all files in deployment server with zip contents
+5. Restore backup version of ".well-known/apple-developer-merchantid-domain-association.txt"
+
+#### Running in deployment server
+
+1. Open an Admin command prompt
+2. Change folders: `D:\ApplePayJS`
+3. Run: `PaymentVision.ApplePayJS.exe 172.31.34.161`
+   - Alternativeily, specify a log to save output to: `PaymentVision.ApplePayJS.exe 172.31.34.161 > log.txt`
+
+### Azure App Service Deployment
 
 If you are deploying the sample application to a Microsoft Azure App Service Web App, you will need to make the following configuration changes to your Web App for the sample application to run correctly:
 

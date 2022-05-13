@@ -45,3 +45,4 @@ PublishProfiles
 *.suo
 *.user
 certs
+dist
