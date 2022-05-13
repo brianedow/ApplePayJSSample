@@ -175,7 +175,7 @@ paymentVision = {
       // Setup handler to receive the token when payment is authorized.
       session.onpaymentauthorized = function (event) {
         const payload = getApplePayPayload(event.payment.token.paymentData);
-        console.log("Payload: ", payload);
+        $("#apple-pay-order-response").val(payload);
 
         fetch(paymentVisionUri.applePay, {
           method: "POST",
@@ -471,6 +471,58 @@ paymentVision = {
       }
     },
   },
+
+  payPal: {
+    onPayPalLoaded: function () {
+      paypal
+        .Buttons({
+          createOrder: () => {
+            $("#paypal-response-container").hide();
+            $("#paypal-response-status").text("");
+            $("#paypal-approve-response").hide();
+
+            return axios.post("https://localhost:7063/api/paypal/order").then((res) => {
+              $("#paypal-response-status").text("Status: processing...");
+              $("#paypal-order-response").val(JSON.stringify(res.data, null, 2));
+              $("#paypal-response-container").show();
+              return res.data.id;
+            });
+          },
+          onApprove: (data, actions) => {
+            return axios.post("https://localhost:7063/api/paypal/order/" + data.orderID + "/capture").then((res) => {
+              // Three cases to handle:
+              //   (1) Recoverable INSTRUMENT_DECLINED -> call actions.restart()
+              //   (2) Other non-recoverable errors -> Show a failure message
+              //   (3) Successful transaction -> Show confirmation or thank you
+
+              const errorDetail = Array.isArray(res.data.details) && res.data.details[0];
+              if (errorDetail && errorDetail.issue === "INSTRUMENT_DECLINED") {
+                $("#paypal-response-status").text("Status: INSTRUMENT_DECLINED");
+                return actions.restart(); // Recoverable state, per https://developer.paypal.com/docs/checkout/integration-features/funding-failure/
+              }
+
+              $("#paypal-approve-response").show();
+
+              if (errorDetail) {
+                $("#paypal-response-status").text("Status: ERROR");
+                let msg = "Transaction could not be processed.";
+                if (errorDetail.description) msg += `\n\n${errorDetail.description}`;
+                if (res.data.debug_id) msg += ` (${res.data.debug_id})`;
+                $("#paypal-approve-response").val(msg);
+                return;
+              }
+
+              const transaction = res.data.purchase_units[0].payments.captures[0];
+              $("#paypal-response-status").text(`Status: ${transaction.status}`);
+              $("#paypal-approve-response").val(
+                `Transaction ID: ${transaction.id}\n\n${JSON.stringify(res.data, null, 2)}`
+              );
+            });
+          },
+        })
+        .render("#paypal-button-container");
+    },
+  },
 };
 
 const getGooglePayPayload = (googlePayResponse) => {
@@ -598,6 +650,4 @@ const getApplePayPayload = (token) => {
   } else {
     paymentVision.applePay.showError("This device and/or browser does not support Apple Pay.");
   }
-
-  let googlePayClient;
 })();

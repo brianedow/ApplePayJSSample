@@ -93,48 +93,10 @@
                 <div class="card-header">Payment successful</div>
                 <div class="card-body">
                     <p class="lead">
-                        Your Apple Pay payment was processed successfully using <span class="card-name"></span>.
+                        Your Apple Pay payment was processed successfully
                     </p>
-                    <div class="card">
-                        <div class="card-header">Billing Contact</div>
-                        <div class="card-body">
-                            <address id="billing-contact">
-                                <strong class="contact-name d-none"></strong>
-                                <a class="contact-email d-none" href=""></a>
-                                <a class="contact-telephone d-none" href=""></a>
-                                <div class="contact-address d-none">
-                                    <hr />
-                                    <span class="contact-address-lines"></span><br />
-                                    <span class="contact-sub-locality"></span><br />
-                                    <span class="contact-locality"></span><br />
-                                    <span class="contact-sub-administrative-area"></span><br />
-                                    <span class="contact-administrative-area"></span><br />
-                                    <span class="contact-postal-code"></span><br />
-                                    <span class="contact-country"></span><br />
-                                </div>
-                            </address>
-                        </div>
-                    </div>
-                    <div class="card mt-3">
-                        <div class="card-header">Shipping Contact</div>
-                        <div class="card-body">
-                            <address id="shipping-contact">
-                                <strong class="contact-name d-none"></strong>
-                                <a class="contact-email d-none" href=""></a>
-                                <a class="contact-telephone d-none" href=""></a>
-                                <div class="contact-address d-none">
-                                    <hr />
-                                    <span class="contact-address-lines"></span><br />
-                                    <span class="contact-sub-locality"></span><br />
-                                    <span class="contact-locality"></span><br />
-                                    <span class="contact-sub-administrative-area"></span><br />
-                                    <span class="contact-administrative-area"></span><br />
-                                    <span class="contact-postal-code"></span><br />
-                                    <span class="contact-country"></span><br />
-                                </div>
-                            </address>
-                        </div>
-                    </div>
+                    <h4>Payload</h4>
+                    <textarea id="apple-pay-order-response" rows="20" style="width: 100%; max-width: 800px"></textarea>
                 </div>
             </div>
         </div>
@@ -208,59 +170,7 @@
     }
 
 
-    <script async src="https://pay.google.com/gp/p/js/pay.js" onload="paymentVision.googlePay.onGooglePayLoaded()"></script>
-    <script src="https://www.paypal.com/sdk/js?client-id=AY8d2nEn9pK1GvtCYDCFo8Gw99bX6sn89Ln_GJFrJsGZvBgCbyKc0T7BBW2Tq1mucqbi_ihELPS1nx55&currency=USD"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-
-    <script>
-        paypal
-            .Buttons({
-            createOrder: () => {
-                $("#paypal-response-container").hide();
-                $("#paypal-response-status").text("");
-                $("#paypal-approve-response").hide();
-
-                return axios
-                .post("https://localhost:7063/api/paypal/order")
-                .then((res) => {
-                    $("#paypal-response-status").text("Status: processing...");
-                    $("#paypal-order-response").val(JSON.stringify(res.data, null, 2));
-                    $("#paypal-response-container").show();
-                    return res.data.id;
-                });
-            },
-            onApprove: (data, actions) => {
-                return axios.post("https://localhost:7063/api/paypal/order/" + data.orderID + "/capture")
-                .then((res) => {
-                    // Three cases to handle:
-                    //   (1) Recoverable INSTRUMENT_DECLINED -> call actions.restart()
-                    //   (2) Other non-recoverable errors -> Show a failure message
-                    //   (3) Successful transaction -> Show confirmation or thank you                       
-
-                    const errorDetail = Array.isArray(res.data.details) && res.data.details[0];
-                    if (errorDetail && errorDetail.issue === "INSTRUMENT_DECLINED") {
-                    $("#paypal-response-status").text("Status: INSTRUMENT_DECLINED");
-                    return actions.restart(); // Recoverable state, per https://developer.paypal.com/docs/checkout/integration-features/funding-failure/
-                    }
-
-                    $("#paypal-approve-response").show();
-
-                    if (errorDetail) {
-                    $("#paypal-response-status").text("Status: ERROR");
-                    let msg = "Transaction could not be processed.";
-                    if (errorDetail.description) msg += `\n\n${errorDetail.description}`;
-                    if (res.data.debug_id) msg += ` (${res.data.debug_id})`;
-                    $("#paypal-approve-response").val(msg);
-                    return;
-                    }
-
-                    const transaction = res.data.purchase_units[0].payments.captures[0];
-                    $("#paypal-response-status").text(`Status: ${transaction.status}`);
-                    $("#paypal-approve-response").val(`Transaction ID: ${transaction.id}\n\n${JSON.stringify(res.data, null, 2)}`);
-                });
-            },
-            })
-            .render("#paypal-button-container");
-    </script>
+    <script async src="https://pay.google.com/gp/p/js/pay.js" onload="paymentVision.googlePay.onGooglePayLoaded()"></script>
+    <script async src="https://www.paypal.com/sdk/js?client-id=AY8d2nEn9pK1GvtCYDCFo8Gw99bX6sn89Ln_GJFrJsGZvBgCbyKc0T7BBW2Tq1mucqbi_ihELPS1nx55&currency=USD" onload="paymentVision.payPal.onPayPalLoaded()"></script>
 }
