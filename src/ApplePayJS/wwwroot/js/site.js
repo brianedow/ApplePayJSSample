@@ -1,17 +1,17 @@
-// Copyright (c) Just Eat, 2016. All rights reserved.
+// Copyright (c) PaymentVision, 2021. All rights reserved.
 // Licensed under the Apache 2.0 license. See the LICENSE file in the project root for full license information.
 
 justEat = {
     applePay: {
         // Function to handle payment when the Apple Pay button is clicked/pressed.
-        beginPayment: function (e) {
+        beginPayment: async function (e) {
 
             e.preventDefault();
 
             // Get the amount to request from the form and set up
             // the totals and line items for collection and delivery.
             var subtotal = $("#amount").val();
-            var delivery = "0.01";
+            var delivery = "0.00";
             var deliveryTotal = (Number(subtotal) + Number(delivery)).toString();
 
             var countryCode = $("meta[name='payment-country-code']").attr("content") || "GB";
@@ -56,6 +56,25 @@ justEat = {
                 supportedCountries: [countryCode]
             };
 
+            /*paymentRequest = {
+                "countryCode": "GB",
+                "currencyCode": "GBP",
+                "merchantCapabilities": [
+                    "supports3DS"
+                ],
+                "supportedNetworks": [
+                    "visa",
+                    "masterCard",
+                    "amex",
+                    "discover"
+                ],
+                "total": {
+                    "label": "Demo (Card is not charged)",
+                    "type": "final",
+                    "amount": "1.99"
+                }
+            }*/
+
             // You can optionally pre-populate the billing and shipping contact
             // with information about the current user, if available to you.
             // paymentRequest.billingContact = {
@@ -68,7 +87,33 @@ justEat = {
             // };
 
             // Create the Apple Pay session.
-            var session = new ApplePaySession(10, paymentRequest);
+            var versionsSupported = [
+                ApplePaySession.supportsVersion(1),
+                ApplePaySession.supportsVersion(2),
+                ApplePaySession.supportsVersion(3),
+                ApplePaySession.supportsVersion(4),
+                ApplePaySession.supportsVersion(5),
+                ApplePaySession.supportsVersion(6),
+                ApplePaySession.supportsVersion(7),
+                ApplePaySession.supportsVersion(8),
+                ApplePaySession.supportsVersion(9),
+                ApplePaySession.supportsVersion(10),
+                ApplePaySession.supportsVersion(11),
+                ApplePaySession.supportsVersion(12),
+            ];
+            var session = new ApplePaySession(8, paymentRequest);
+
+            /*session.onvalidatemerchant = event => {
+                // Call your own server to request a new merchant session.
+                fetch("/authorizeMerchant")
+                    .then(res => res.json()) // Parse response as JSON.
+                    .then(merchantSession => {
+                        session.completeMerchantValidation(merchantSession);
+                    })
+                    .catch(err => {
+                        console.error("Error fetching merchant session", err);
+                    });
+            };*/
 
             // Setup handler for validation the merchant session.
             session.onvalidatemerchant = function (event) {
@@ -87,16 +132,20 @@ justEat = {
 
                 // Post the payload to the server to validate the
                 // merchant session using the merchant certificate.
+                var merchantValidationUrl = $("link[rel='merchant-validation']").attr("href");
                 $.ajax({
-                    url: $("link[rel='merchant-validation']").attr("href"),
+                    url: merchantValidationUrl,
                     method: "POST",
                     contentType: "application/json; charset=utf-8",
                     data: JSON.stringify(data),
                     headers: headers
                 }).then(function (merchantSession) {
                     // Complete validation by passing the merchant session to the Apple Pay session.
+                    console.log(merchantSession);
                     session.completeMerchantValidation(merchantSession);
-                });
+                }).catch(err => {
+                    console.error("Error calling merchant validation: ", err.responseText);
+                });;
             };
 
             // Setup handler for shipping method selection.
@@ -188,8 +237,100 @@ justEat = {
                 justEat.applePay.showSuccess();
             };
 
+            session.oncancel = function (event) {
+                var x = 1;
+                console.log("oncancel(" + JSON.stringify(event) + ")")
+            };
+
+
             // Start the session to display the Apple Pay sheet.
             session.begin();
+/*
+            // Consider falling back to Apple Pay JS if Payment Request is not available.
+            if (!window.PaymentRequest)
+                return;
+
+            try {
+                const applePayMethod = {
+                    supportedMethods: "https://apple.com/apple-pay",
+                    data: {
+                        version: 3,
+                        merchantIdentifier: "merchant.com.example",
+                        merchantCapabilities: ["supports3DS", "supportsCredit", "supportsDebit"],
+                        supportedNetworks: ["amex", "discover", "masterCard", "visa"],
+                        countryCode: "US",
+                    },
+                };
+                const paymentDetails = {
+                    total: {
+                        label: "My Merchant",
+                        amount: { value: "27.50", currency: "USD" },
+                    },
+                    displayItems: [{
+                        label: "Tax",
+                        amount: { value: "2.50", currency: "USD" },
+                    }, {
+                        label: "Ground Shipping",
+                        amount: { value: "5.00", currency: "USD" },
+                    }],
+                    shippingOptions: [{
+                        id: "ground",
+                        label: "Ground Shipping",
+                        amount: { value: "5.00", currency: "USD" },
+                        selected: true,
+                    }, {
+                        id: "express",
+                        label: "Express Shipping",
+                        amount: { value: "10.00", currency: "USD" },
+                    }],
+                };
+                const paymentOptions = {
+                    requestPayerName: true,
+                    requestPayerEmail: true,
+                    requestPayerPhone: true,
+                    requestShipping: true,
+                    shippingType: "shipping",
+                };
+                const request = new PaymentRequest([applePayMethod], paymentDetails, paymentOptions);
+
+                request.onmerchantvalidation = function (event) {
+                    // Have your server fetch a payment session from event.validationURL.
+                    const sessionPromise = fetchPaymentSession(event.validationURL);
+                    event.complete(sessionPromise);
+                };
+
+                request.onshippingoptionchange = function (event) {
+                    // Compute new payment details based on the selected shipping option.
+                    const detailsUpdatePromise = computeDetails();
+                    event.updateWith(detailsUpdatePromise);
+                };
+
+                request.onshippingaddresschange = function (event) {
+                    // Compute new payment details based on the selected shipping address.
+                    const detailsUpdatePromise = computeDetails();
+                    event.updateWith(detailsUpdatePromise);
+                };
+
+                const response = //await request.show()
+                    request.show()
+                    .then((paymentResponse) => {
+                      // The user filled in the required fields and completed the flow
+                      // Get the details from `paymentResponse` and complete the transaction.
+                      return paymentResponse.complete();
+                    })
+                    .catch((err) => {
+                        // The API threw an error or the user closed the UI
+                        var y = 1;
+                    });
+                //const status = processResponse(response);
+                //response.complete(status);
+            } catch (e) {
+                // Handle errors
+                var x = 1;
+            }
+
+*/
+
         },
         setupApplePay: function () {
             var merchantIdentifier = justEat.applePay.getMerchantIdentifier();

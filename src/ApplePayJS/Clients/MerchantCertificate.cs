@@ -1,4 +1,4 @@
-// Copyright (c) Just Eat, 2016. All rights reserved.
+// Copyright (c) PaymentVision, 2021. All rights reserved.
 // Licensed under the Apache 2.0 license. See the LICENSE file in the project root for full license information.
 
 using System;
@@ -68,7 +68,7 @@ namespace JustEat.ApplePayJS.Clients
 
             return X509Certificate2.GetCertContentType(rawData) switch
             {
-                X509ContentType.Pfx => new X509Certificate2(rawData, password),
+                X509ContentType.Pfx => new X509Certificate2(rawData, (string.IsNullOrEmpty(password) ? null : password)),
                 _ => throw new NotSupportedException("The format of the encoded Apple Pay merchant certificate is not supported."),
             };
         }
@@ -79,7 +79,7 @@ namespace JustEat.ApplePayJS.Clients
             {
                 return new X509Certificate2(
                     fileName ?? string.Empty,
-                    password);
+                    (string.IsNullOrEmpty(password) ? null : password) ); // password);
             }
             catch (Exception ex)
             {

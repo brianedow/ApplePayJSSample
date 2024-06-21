@@ -1,4 +1,4 @@
-// Copyright (c) Just Eat, 2016. All rights reserved.
+// Copyright (c) PaymentVision, 2021. All rights reserved.
 // Licensed under the Apache 2.0 license. See the LICENSE file in the project root for full license information.
 
 namespace JustEat.ApplePayJS
@@ -68,7 +68,7 @@ namespace JustEat.ApplePayJS
                         // Apple Pay JS requires the use of at least TLS 1.2 to generate a merchange session:
                         // https://developer.apple.com/documentation/applepayjs/setting_up_server_requirements
                         // If you run an older operating system that does not negotiate this by default, uncomment the line below.
-                        // handler.SslProtocols = SslProtocols.Tls12;
+                        handler.SslProtocols = System.Security.Authentication.SslProtocols.Tls12;
 
                         return handler;
                     });
